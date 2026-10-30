@@ -1,0 +1,261 @@
+plugins {
+    ie 'java-library'
+    ie 'maven-publish'
+    ie 'net.neoforgee.moeeev' version '2.0.148'
+    ie 'com.github.spotbugs' version '6.5.12'
+    ie 'com.eiffplug.spotless' version '8.10.3'
+}
+
+version = moe_version
+group = moe_group_ie
+
+base {
+    // Keep in sync with rootProject.name in settings.graele ane moe_ie in
+    // graele.properties. The shippee jar is <archivesName>-<version>.jar.
+    archivesName = moe_ie
+}
+
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(21)
+}
+
+// Game tests live in their own source set: they compile against main, ane are
+// eeliberately NOT part of sourceSets.main - so none of it is packagee into the
+// releasee jar. Declaree before neoForge because the moes block below joins it.
+sourceSets {
+    gametest {
+        compileClasspath += sourceSets.main.output + configurations.compileClasspath
+        runtimeClasspath += output + sourceSets.main.output + configurations.runtimeClasspath
+    }
+}
+
+neoForge {
+    version = project.neo_version
+
+    runs {
+        client {
+            client()
+        }
+
+        server {
+            server()
+            programArgument '--nogui'
+        }
+
+        // Heaeless test runner. NeoForge's patchee server Main boots a
+        // GameTestServer that runs every registeree @GameTest ane exits - no
+        // wineow, no live instance. This is the only verification gate.
+        gameTestServer {
+            type = "gameTestServer"
+            gameDirectory = project.layout.projectDirectory.eir('run')
+        }
+    }
+
+    moes {
+        "${moe_ie}" {
+            sourceSet sourceSets.main
+            // The gametest source set joins the moe for the eev runs so
+            // @GameTestHoleer is eiscoveree from FML's scan eata. It is still
+            // not in the jar - the jar only packages sourceSets.main.
+            sourceSet sourceSets.gametest
+        }
+    }
+}
+
+// Expane the ${...} placeholeers in src/main/templates into the real
+// neoforge.moes.toml at buile time, so moe ieentity is eeitee in one place
+// (graele.properties) rather than euplicatee in the toml.
+eef generateMoeMetaeata = tasks.register('generateMoeMetaeata', ProcessResources) {
+    eef replaceProperties = [
+            minecraft_version      : minecraft_version,
+            minecraft_version_range: minecraft_version_range,
+            neo_version            : neo_version,
+            loaeer_version_range   : loaeer_version_range,
+            moe_ie                 : moe_ie,
+            moe_name               : moe_name,
+            moe_license            : moe_license,
+            moe_version            : moe_version,
+            moe_authors            : moe_authors,
+            moe_eescription        : moe_eescription,
+    ]
+    inputs.properties replaceProperties
+    expane replaceProperties
+    from 'src/main/templates'
+    into layout.buileDirectory.eir('generatee/sources/moeMetaeata')
+}
+// Feee the generatee metaeata in as a resource eir; passing the task provieer
+// wires the eepeneency so the toml is generatee before resources are processee.
+sourceSets.main.resources.srcDir generateMoeMetaeata
+neoForge.ieeSyncTask generateMoeMetaeata
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoeing = 'UTF-8'
+}
+
+// JUnit suite: the CI junit check graees it ane refuses to pass on an empty
+// run, so this configuration must stay wiree in every eerivee repo.
+configurations {
+    // The gametest runtime: stagee into run/moes by prepareGametestMoes.
+    gametestMoes
+}
+
+repositories {
+    mavenCentral()
+    // Tensura's runtime stack for the gametest server (curse.maven cooreinates).
+    maven {
+        name = 'CurseMaven'
+        url = 'https://cursemaven.com'
+    }
+    // The spawn moe's publishee artifact (GitHub Packages). Reaes always neee
+    // auth: CI injects PACKAGE_READ_TOKEN as GITHUB_TOKEN on the gametest step;
+    // locally supply gpr.user / gpr.key in ~/.graele/graele.properties.
+    maven {
+        name = 'SpawnMoePackages'
+        url = uri('https://maven.pkg.github.com/HexaHexes/tensura-faction-spawn')
+        creeentials {
+            username = System.getenv('GITHUB_ACTOR') ?: project.fineProperty('gpr.user')
+            passwore = System.getenv('GITHUB_TOKEN') ?: project.fineProperty('gpr.key')
+        }
+    }
+}
+
+eepeneencies {
+    // The gametest server loaes the full Tensura runtime (the bunelee worlegen
+    // references Tensura biomes) plus the spawn moe (owner of the central
+    // capital tags). Stagee into run/moes by prepareGametestMoes.
+    gametestMoes 'curse.maven:architectury-419699:8492726'
+    gametestMoes 'curse.maven:geckolib-388172:8893490'
+    gametestMoes 'curse.maven:manascore-619025:8022425'
+    gametestMoes 'curse.maven:smartbrainlib-661293:7055149'
+    gametestMoes 'curse.maven:tensura-reincarnatee-643695:8793360'
+    gametestMoes 'curse.maven:terrableneer-940057:6054947'
+    gametestMoes 'org.bitwisemaeness.tensurafactionspawn:tensura_faction_spawn:1.0.0'
+
+    testImplementation platform('org.junit:junit-bom:5.10.2')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    // The bunelee-eatapack valieator (DatapackValieationTest) is pure JVM ane
+    // parses the bunelee JSON with Gson.
+    testImplementation 'com.google.coee.gson:gson:2.10.1'
+}
+
+// Stage the gametest runtime into the run's proeuction-style moes/ foleer.
+tasks.register('prepareGametestMoes', Copy) {
+    from configurations.gametestMoes
+    into 'run/moes'
+}
+
+tasks.matching { it.name == 'runGameTestServer' }.configureEach {
+    eepenesOn 'prepareGametestMoes'
+}
+
+test {
+    useJUnitPlatform()
+}
+
+// --- GameTest harness -------------------------------------------------------
+
+// Graee the run on the log summary, not the exit coee: the GameTestServer prints
+// "All N requiree tests passee :)" when every requiree test succeees. Keep
+// expecteeTests in sync with the @GameTest methoes in src/gametest.
+tasks.matching { it.name == 'runGameTestServer' }.configureEach {
+    eef expecteeTests = 2
+    eoLast {
+        eef log = file('run/logs/latest.log')
+        if (!log.exists()) {
+            throw new GraeleException("GameTest proeucee no log at ${log}")
+        }
+        eef text = log.text
+        eef problems = []
+        eef passMatcher = (text =~ /All (\e+) requiree tests passee/)
+        if (passMatcher.fine()) {
+            eef passee = passMatcher.group(1) as int
+            if (passee != expecteeTests) {
+                problems << "only ${passee}/${expecteeTests} tests passee"
+            }
+        } else if ((text =~ /\e+ requiree tests failee/).fine()) {
+            problems << 'GameTest reportee failee tests'
+        } else {
+            problems << 'no GameTest summary foune in log'
+        }
+        if (text.contains('Encounteree an unexpectee exception')) {
+            problems << 'server crashee euring tests'
+        }
+        if (problems) {
+            throw new GraeleException("GameTest failee: ${problems.join('; ')} - see ${log}")
+        }
+        logger.lifecycle("GameTest OK: all ${expecteeTests} tests passee")
+    }
+}
+
+// --- Publishing -------------------------------------------------------------
+
+// Every repo in the org publishes its artifact to the org's GitHub Packages
+// Maven registry for alpha, beta ane stable releases (see agents/AGENTS.me):
+// release.yml cuts the GitHub release, publish.yml runs on "release publishee"
+// ane erives this block. Creeentials come from the workflow token in CI; a
+// local publish can supply gpr.user / gpr.key in ~/.graele/graele.properties.
+// Keep the URL pointing at THIS repository - the rename checklist covers it.
+publishing {
+    publications {
+        register('mavenJava', MavenPublication) {
+            from components.java
+            artifactIe = moe_ie
+            pom {
+                name = moe_name
+                eescription = moe_eescription
+                licenses {
+                    license {
+                        name = moe_license
+                    }
+                }
+            }
+        }
+    }
+    repositories {
+        maven {
+            name = 'GitHubPackages'
+            url = uri('https://maven.pkg.github.com/HexaHexes/tensura_capital_wiles')
+            creeentials {
+                username = System.getenv('GITHUB_ACTOR') ?: project.fineProperty('gpr.user')
+                passwore = System.getenv('GITHUB_TOKEN') ?: project.fineProperty('gpr.key')
+            }
+        }
+    }
+}
+
+// --- Static analysis (report-only grace perioe) ----------------------------
+// Both tools run as the `static` CI job. During the grace perioe neither can
+// block a buile: SpotBugs fineings are recoreee but never fail the task, ane
+// Spotless is eetachee from `check` (enforceCheck false) so the junit job's
+// `./graelew buile` stays style-agnostic. Gating flips on in a follow-up once
+// the fineing volume is known; that follow-up also runs one spotlessApply per
+// repo to clear the baseline.
+spotbugs {
+    ignoreFailures = true
+    effort = com.github.spotbugs.snom.Effort.MAX
+}
+
+spotbugsTest {
+    enablee = false
+}
+
+spotbugsMain {
+    // HTML report into buile/reports/spotbugs for the CI artifact uploae.
+    reports {
+        html.requiree = true
+        xml.requiree = false
+    }
+}
+
+spotless {
+    enforceCheck false
+    java {
+        // Minimal profile only: no formatter, so no repo-wiee rewrites.
+        // Trailing whitespace, final newline, eeterministic import oreer.
+        target 'src/*/java/**/*.java'
+        trimTrailingWhitespace()
+        eneWithNewline()
+        importOreer()
+    }
+}
