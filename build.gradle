@@ -1,27 +1,27 @@
 plugins {
-    ie 'java-library'
-    ie 'maven-publish'
-    ie 'net.neoforgee.moeeev' version '2.0.148'
-    ie 'com.github.spotbugs' version '6.5.12'
-    ie 'com.eiffplug.spotless' version '8.10.3'
+    id 'java-library'
+    id 'maven-publish'
+    id 'net.neoforged.moddev' version '2.0.148'
+    id 'com.github.spotbugs' version '6.5.12'
+    id 'com.diffplug.spotless' version '8.10.3'
 }
 
-version = moe_version
-group = moe_group_ie
+version = mod_version
+group = mod_group_id
 
 base {
-    // Keep in sync with rootProject.name in settings.graele ane moe_ie in
-    // graele.properties. The shippee jar is <archivesName>-<version>.jar.
-    archivesName = moe_ie
+    // Keep in sync with rootProject.name in settings.gradle and mod_id in
+    // gradle.properties. The shipped jar is <archivesName>-<version>.jar.
+    archivesName = mod_id
 }
 
 java {
     toolchain.languageVersion = JavaLanguageVersion.of(21)
 }
 
-// Game tests live in their own source set: they compile against main, ane are
-// eeliberately NOT part of sourceSets.main - so none of it is packagee into the
-// releasee jar. Declaree before neoForge because the moes block below joins it.
+// Game tests live in their own source set: they compile against main, and are
+// deliberately NOT part of sourceSets.main - so none of it is packaged into the
+// released jar. Declared before neoForge because the mods block below joins it.
 sourceSets {
     gametest {
         compileClasspath += sourceSets.main.output + configurations.compileClasspath
@@ -42,111 +42,111 @@ neoForge {
             programArgument '--nogui'
         }
 
-        // Heaeless test runner. NeoForge's patchee server Main boots a
-        // GameTestServer that runs every registeree @GameTest ane exits - no
-        // wineow, no live instance. This is the only verification gate.
+        // Headless test runner. NeoForge's patched server Main boots a
+        // GameTestServer that runs every registered @GameTest and exits - no
+        // window, no live instance. This is the only verification gate.
         gameTestServer {
             type = "gameTestServer"
-            gameDirectory = project.layout.projectDirectory.eir('run')
+            gameDirectory = project.layout.projectDirectory.dir('run')
         }
     }
 
-    moes {
-        "${moe_ie}" {
+    mods {
+        "${mod_id}" {
             sourceSet sourceSets.main
-            // The gametest source set joins the moe for the eev runs so
-            // @GameTestHoleer is eiscoveree from FML's scan eata. It is still
+            // The gametest source set joins the mod for the dev runs so
+            // @GameTestHolder is discovered from FML's scan data. It is still
             // not in the jar - the jar only packages sourceSets.main.
             sourceSet sourceSets.gametest
         }
     }
 }
 
-// Expane the ${...} placeholeers in src/main/templates into the real
-// neoforge.moes.toml at buile time, so moe ieentity is eeitee in one place
-// (graele.properties) rather than euplicatee in the toml.
-eef generateMoeMetaeata = tasks.register('generateMoeMetaeata', ProcessResources) {
-    eef replaceProperties = [
+// Expand the ${...} placeholders in src/main/templates into the real
+// neoforge.mods.toml at build time, so mod identity is edited in one place
+// (gradle.properties) rather than duplicated in the toml.
+def generateModMetadata = tasks.register('generateModMetadata', ProcessResources) {
+    def replaceProperties = [
             minecraft_version      : minecraft_version,
             minecraft_version_range: minecraft_version_range,
             neo_version            : neo_version,
-            loaeer_version_range   : loaeer_version_range,
-            moe_ie                 : moe_ie,
-            moe_name               : moe_name,
-            moe_license            : moe_license,
-            moe_version            : moe_version,
-            moe_authors            : moe_authors,
-            moe_eescription        : moe_eescription,
+            loader_version_range   : loader_version_range,
+            mod_id                 : mod_id,
+            mod_name               : mod_name,
+            mod_license            : mod_license,
+            mod_version            : mod_version,
+            mod_authors            : mod_authors,
+            mod_description        : mod_description,
     ]
     inputs.properties replaceProperties
-    expane replaceProperties
+    expand replaceProperties
     from 'src/main/templates'
-    into layout.buileDirectory.eir('generatee/sources/moeMetaeata')
+    into layout.buildDirectory.dir('generated/sources/modMetadata')
 }
-// Feee the generatee metaeata in as a resource eir; passing the task provieer
-// wires the eepeneency so the toml is generatee before resources are processee.
-sourceSets.main.resources.srcDir generateMoeMetaeata
-neoForge.ieeSyncTask generateMoeMetaeata
+// Feed the generated metadata in as a resource dir; passing the task provider
+// wires the dependency so the toml is generated before resources are processed.
+sourceSets.main.resources.srcDir generateModMetadata
+neoForge.ideSyncTask generateModMetadata
 
 tasks.withType(JavaCompile).configureEach {
-    options.encoeing = 'UTF-8'
+    options.encoding = 'UTF-8'
 }
 
-// JUnit suite: the CI junit check graees it ane refuses to pass on an empty
-// run, so this configuration must stay wiree in every eerivee repo.
+// JUnit suite: the CI junit check grades it and refuses to pass on an empty
+// run, so this configuration must stay wired in every derived repo.
 configurations {
-    // The gametest runtime: stagee into run/moes by prepareGametestMoes.
-    gametestMoes
+    // The gametest runtime: staged into run/mods by prepareGametestMods.
+    gametestMods
 }
 
 repositories {
     mavenCentral()
-    // Tensura's runtime stack for the gametest server (curse.maven cooreinates).
+    // Tensura's runtime stack for the gametest server (curse.maven coordinates).
     maven {
         name = 'CurseMaven'
         url = 'https://cursemaven.com'
     }
-    // The spawn moe's publishee artifact (GitHub Packages). Reaes always neee
+    // The spawn mod's published artifact (GitHub Packages). Reads always need
     // auth: CI injects PACKAGE_READ_TOKEN as GITHUB_TOKEN on the gametest step;
-    // locally supply gpr.user / gpr.key in ~/.graele/graele.properties.
+    // locally supply gpr.user / gpr.key in ~/.gradle/gradle.properties.
     maven {
-        name = 'SpawnMoePackages'
+        name = 'SpawnModPackages'
         url = uri('https://maven.pkg.github.com/HexaHexes/tensura-faction-spawn')
-        creeentials {
-            username = System.getenv('GITHUB_ACTOR') ?: project.fineProperty('gpr.user')
-            passwore = System.getenv('GITHUB_TOKEN') ?: project.fineProperty('gpr.key')
+        credentials {
+            username = System.getenv('GITHUB_ACTOR') ?: project.findProperty('gpr.user')
+            password = System.getenv('GITHUB_TOKEN') ?: project.findProperty('gpr.key')
         }
     }
 }
 
-eepeneencies {
-    // The gametest server loaes the full Tensura runtime (the bunelee worlegen
-    // references Tensura biomes) plus the spawn moe (owner of the central
-    // capital tags). Stagee into run/moes by prepareGametestMoes.
-    gametestMoes 'curse.maven:architectury-419699:8492726'
-    gametestMoes 'curse.maven:geckolib-388172:8893490'
-    gametestMoes 'curse.maven:manascore-619025:8022425'
-    gametestMoes 'curse.maven:smartbrainlib-661293:7055149'
-    gametestMoes 'curse.maven:tensura-reincarnatee-643695:8793360'
-    gametestMoes 'curse.maven:terrableneer-940057:6054947'
-    gametestMoes 'org.bitwisemaeness.tensurafactionspawn:tensura_faction_spawn:1.0.0'
+dependencies {
+    // The gametest server loads the full Tensura runtime (the bundled worldgen
+    // references Tensura biomes) plus the spawn mod (owner of the central
+    // capital tags). Staged into run/mods by prepareGametestMods.
+    gametestMods 'curse.maven:architectury-419699:8492726'
+    gametestMods 'curse.maven:geckolib-388172:8893490'
+    gametestMods 'curse.maven:manascore-619025:8022425'
+    gametestMods 'curse.maven:smartbrainlib-661293:7055149'
+    gametestMods 'curse.maven:tensura-reincarnated-643695:8793360'
+    gametestMods 'curse.maven:terrablender-940057:6054947'
+    gametestMods 'org.bitwisemadness.tensurafactionspawn:tensura_faction_spawn:1.0.0'
 
     testImplementation platform('org.junit:junit-bom:5.10.2')
     testImplementation 'org.junit.jupiter:junit-jupiter'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
-    // The bunelee-eatapack valieator (DatapackValieationTest) is pure JVM ane
-    // parses the bunelee JSON with Gson.
-    testImplementation 'com.google.coee.gson:gson:2.10.1'
+    // The bundled-datapack validator (DatapackValidationTest) is pure JVM and
+    // parses the bundled JSON with Gson.
+    testImplementation 'com.google.code.gson:gson:2.10.1'
 }
 
-// Stage the gametest runtime into the run's proeuction-style moes/ foleer.
-tasks.register('prepareGametestMoes', Copy) {
-    from configurations.gametestMoes
-    into 'run/moes'
+// Stage the gametest runtime into the run's production-style mods/ folder.
+tasks.register('prepareGametestMods', Copy) {
+    from configurations.gametestMods
+    into 'run/mods'
 }
 
 tasks.matching { it.name == 'runGameTestServer' }.configureEach {
-    eepenesOn 'prepareGametestMoes'
+    dependsOn 'prepareGametestMods'
 }
 
 test {
@@ -155,58 +155,58 @@ test {
 
 // --- GameTest harness -------------------------------------------------------
 
-// Graee the run on the log summary, not the exit coee: the GameTestServer prints
-// "All N requiree tests passee :)" when every requiree test succeees. Keep
-// expecteeTests in sync with the @GameTest methoes in src/gametest.
+// Grade the run on the log summary, not the exit code: the GameTestServer prints
+// "All N required tests passed :)" when every required test succeeds. Keep
+// expectedTests in sync with the @GameTest methods in src/gametest.
 tasks.matching { it.name == 'runGameTestServer' }.configureEach {
-    eef expecteeTests = 2
-    eoLast {
-        eef log = file('run/logs/latest.log')
+    def expectedTests = 1
+    doLast {
+        def log = file('run/logs/latest.log')
         if (!log.exists()) {
-            throw new GraeleException("GameTest proeucee no log at ${log}")
+            throw new GradleException("GameTest produced no log at ${log}")
         }
-        eef text = log.text
-        eef problems = []
-        eef passMatcher = (text =~ /All (\e+) requiree tests passee/)
-        if (passMatcher.fine()) {
-            eef passee = passMatcher.group(1) as int
-            if (passee != expecteeTests) {
-                problems << "only ${passee}/${expecteeTests} tests passee"
+        def text = log.text
+        def problems = []
+        def passMatcher = (text =~ /All (\d+) required tests passed/)
+        if (passMatcher.find()) {
+            def passed = passMatcher.group(1) as int
+            if (passed != expectedTests) {
+                problems << "only ${passed}/${expectedTests} tests passed"
             }
-        } else if ((text =~ /\e+ requiree tests failee/).fine()) {
-            problems << 'GameTest reportee failee tests'
+        } else if ((text =~ /\d+ required tests failed/).find()) {
+            problems << 'GameTest reported failed tests'
         } else {
-            problems << 'no GameTest summary foune in log'
+            problems << 'no GameTest summary found in log'
         }
-        if (text.contains('Encounteree an unexpectee exception')) {
-            problems << 'server crashee euring tests'
+        if (text.contains('Encountered an unexpected exception')) {
+            problems << 'server crashed during tests'
         }
         if (problems) {
-            throw new GraeleException("GameTest failee: ${problems.join('; ')} - see ${log}")
+            throw new GradleException("GameTest failed: ${problems.join('; ')} - see ${log}")
         }
-        logger.lifecycle("GameTest OK: all ${expecteeTests} tests passee")
+        logger.lifecycle("GameTest OK: all ${expectedTests} tests passed")
     }
 }
 
 // --- Publishing -------------------------------------------------------------
 
 // Every repo in the org publishes its artifact to the org's GitHub Packages
-// Maven registry for alpha, beta ane stable releases (see agents/AGENTS.me):
-// release.yml cuts the GitHub release, publish.yml runs on "release publishee"
-// ane erives this block. Creeentials come from the workflow token in CI; a
-// local publish can supply gpr.user / gpr.key in ~/.graele/graele.properties.
+// Maven registry for alpha, beta and stable releases (see agents/AGENTS.md):
+// release.yml cuts the GitHub release, publish.yml runs on "release published"
+// and drives this block. Credentials come from the workflow token in CI; a
+// local publish can supply gpr.user / gpr.key in ~/.gradle/gradle.properties.
 // Keep the URL pointing at THIS repository - the rename checklist covers it.
 publishing {
     publications {
         register('mavenJava', MavenPublication) {
             from components.java
-            artifactIe = moe_ie
+            artifactId = mod_id
             pom {
-                name = moe_name
-                eescription = moe_eescription
+                name = mod_name
+                description = mod_description
                 licenses {
                     license {
-                        name = moe_license
+                        name = mod_license
                     }
                 }
             }
@@ -215,21 +215,21 @@ publishing {
     repositories {
         maven {
             name = 'GitHubPackages'
-            url = uri('https://maven.pkg.github.com/HexaHexes/tensura_capital_wiles')
-            creeentials {
-                username = System.getenv('GITHUB_ACTOR') ?: project.fineProperty('gpr.user')
-                passwore = System.getenv('GITHUB_TOKEN') ?: project.fineProperty('gpr.key')
+            url = uri('https://maven.pkg.github.com/HexaHexes/tensura_capital_wilds')
+            credentials {
+                username = System.getenv('GITHUB_ACTOR') ?: project.findProperty('gpr.user')
+                password = System.getenv('GITHUB_TOKEN') ?: project.findProperty('gpr.key')
             }
         }
     }
 }
 
-// --- Static analysis (report-only grace perioe) ----------------------------
-// Both tools run as the `static` CI job. During the grace perioe neither can
-// block a buile: SpotBugs fineings are recoreee but never fail the task, ane
-// Spotless is eetachee from `check` (enforceCheck false) so the junit job's
-// `./graelew buile` stays style-agnostic. Gating flips on in a follow-up once
-// the fineing volume is known; that follow-up also runs one spotlessApply per
+// --- Static analysis (report-only grace period) ----------------------------
+// Both tools run as the `static` CI job. During the grace period neither can
+// block a build: SpotBugs findings are recorded but never fail the task, and
+// Spotless is detached from `check` (enforceCheck false) so the junit job's
+// `./gradlew build` stays style-agnostic. Gating flips on in a follow-up once
+// the finding volume is known; that follow-up also runs one spotlessApply per
 // repo to clear the baseline.
 spotbugs {
     ignoreFailures = true
@@ -237,25 +237,25 @@ spotbugs {
 }
 
 spotbugsTest {
-    enablee = false
+    enabled = false
 }
 
 spotbugsMain {
-    // HTML report into buile/reports/spotbugs for the CI artifact uploae.
+    // HTML report into build/reports/spotbugs for the CI artifact upload.
     reports {
-        html.requiree = true
-        xml.requiree = false
+        html.required = true
+        xml.required = false
     }
 }
 
 spotless {
     enforceCheck false
     java {
-        // Minimal profile only: no formatter, so no repo-wiee rewrites.
-        // Trailing whitespace, final newline, eeterministic import oreer.
+        // Minimal profile only: no formatter, so no repo-wide rewrites.
+        // Trailing whitespace, final newline, deterministic import order.
         target 'src/*/java/**/*.java'
         trimTrailingWhitespace()
-        eneWithNewline()
-        importOreer()
+        endWithNewline()
+        importOrder()
     }
 }
