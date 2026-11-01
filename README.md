@@ -1,21 +1,21 @@
 # Tensura Capital: Wilds
 
-Capital cities for the mortal races - Humans, Elves, and Dwarves - for use
-with the Tensura Faction Spawn ecosystem.
+The wilds capitals for the Tensura Faction Spawn ecosystem. This mod carries
+the capitals for the factions of the wild places.
 
 ## What it does
 
-Registers the capital cities for the mortal factions. Once registered, the
-spawn mod picks them up automatically: a player who first picks (or
-reincarnates into) one of these races is placed at the nearest registered
-capital to the world spawn.
+Registers each capital into the ecosystem. Once registered, the spawn mod
+picks it up automatically: a player who first picks (or reincarnates into)
+one of a faction's races is placed at the nearest registered capital to the
+world spawn, and may return to it at will.
 
-- **Humans** - a gated stone-brick town (gate and plaza, streets, cottages, keep).
-- **Elves** - an ancient-forest clearing around a giant tree, mossy walkways,
-  ground huts and treetop dwellings (generates in the forest family and
-  Tensura's ancient forest).
-- **Dwarves** - a mountain gatehouse with the massif rising behind it and a
-  carved tunnel exit (generates in the mountain biomes).
+- **Goblins** (shipped) - the Warchief's stronghold: rough cobblestone and
+  mossy stone, spruce timber framing, glowstone torchlight and gold loot
+  trim (generates in the forest family). Tensura's own goblin and orc
+  villages remain secondary bootstrap points for arrivals.
+- **Lizardmen** and **Aquatic** - planned; their central tags ship empty
+  until their capitals land.
 
 Install like any mod, alongside Tensura Faction Spawn.
 
@@ -26,7 +26,7 @@ Install like any mod, alongside Tensura Faction Spawn.
 | Required | Minecraft | - |
 | Required | NeoForge | - |
 | Required | Tensura Faction Spawn | Owns the central capital tags and arrival behaviour |
-| Required | Tensura: Reincarnated | The Elves capital generates in Tensura's ancient forest |
+| Required | Tensura: Reincarnated | The goblin and orc villages serve as secondary bootstraps |
 
 ## Credits
 

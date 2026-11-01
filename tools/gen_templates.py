@@ -1,19 +1,25 @@
 #!/usr/bin/env python3
-"""Generates the jigsaw structure templates for the mortals capitals.
+"""Generates the jigsaw structure templates for the Goblins capital.
 
-Committed tooling, not a one-off: the templates are code so the cities are
+Committed tooling, not a one-off: the templates are code so the city is
 regeneratable and reviewable. Run from the repository root:
 
     python tools/gen_templates.py
 
-Writes gzip NBT structure files under datapack/data/<ns>/structure/humans/.
+Writes gzip NBT structure files under src/main/resources/data/
+<ns>/structure/ (the mod-bundled datapack).
 
-Design constraints (see SPIKE-CAPITAL-GEN-01): a single jigsaw structure is
-capped at 128 blocks from its center (`max_distance_from_center`), so each
-template stays small and the town grows by jigsaw expansion, not by template
-size. All connections use a uniform name/target pair ("road"), horizontal
-`orientation` values, and `joint: "roll"` - the scheme vanilla villages prove
-works. Blocks are full cubes only; v1 avoids stairs/slab properties.
+Design constraints (SPIKE-CAPITAL-GEN-01): a single jigsaw structure is capped
+at 128 blocks from its center (`max_distance_from_center`), so each template
+stays small and the stronghold grows by jigsaw expansion. All connections use
+a uniform name/target pair ("road"), horizontal `orientation` values, and
+`joint: "roll"`. Blocks are full cubes only.
+
+The Goblins theme: the Warchief's stronghold - rough cobblestone and mossy
+stone mass, spruce timber framing, glowstone torchlight and gold loot trim.
+The races (goblin through orc disaster, kobold) range across Tensura's
+forest-family villages, so the stronghold generates in the vanilla forest
+family.
 """
 
 from __future__ import annotations
@@ -29,16 +35,11 @@ TAG_LIST = 9
 TAG_COMPOUND = 10
 
 DATA_VERSION = 3955  # 1.21.1
-NAMESPACE = "tensura_capital_mortals"
+NAMESPACE = "tensura_capital_wilds"
 OUT = Path(__file__).resolve().parent.parent / "src" / "main" / "resources" / "data" / NAMESPACE / "structure"
 
-STREETS_POOL = f"{NAMESPACE}:humans/streets"
-BUILDINGS_POOL = f"{NAMESPACE}:humans/buildings"
-STREETS_POOL_ELVES = f"{NAMESPACE}:elves/streets"
-BUILDINGS_POOL_ELVES = f"{NAMESPACE}:elves/buildings"
-STREETS_POOL_DWARVES = f"{NAMESPACE}:dwarves/streets"
-BUILDINGS_POOL_DWARVES = f"{NAMESPACE}:dwarves/buildings"
-ANDESITE = "minecraft:andesite"
+STREETS_POOL = f"{NAMESPACE}:streets"
+BUILDINGS_POOL = f"{NAMESPACE}:buildings"
 
 
 # --- minimal NBT writer -----------------------------------------------------
@@ -68,11 +69,6 @@ def _payload(tag: int, value):
             out += bytes([item_tag]) + _string(name) + _payload(item_tag, item_value)
         return out + b"\x00"
     raise ValueError(f"unsupported tag {tag}")
-
-
-def compound(fields) -> tuple[int, tuple]:
-    """(TAG_COMPOUND, [(name, tag, value), ...])"""
-    return (TAG_COMPOUND, list(fields))
 
 
 def int_list(values) -> tuple[int, list]:
@@ -122,13 +118,9 @@ class Template:
                 self.set(x1, y, z, name, **props)
 
     def jigsaw(self, x: int, y: int, z: int, orientation: str, pool: str) -> None:
-        """Places a jigsaw block with the uniform road connection."""
         state = self.state("minecraft:jigsaw", orientation=orientation)
         self.blocks[(x, y, z)] = state
-        self.jigsaws.append({
-            "pos": [x, y, z],
-            "pool": pool,
-        })
+        self.jigsaws.append({"pos": [x, y, z], "pool": pool})
 
     def to_nbt(self) -> bytes:
         blocks = []
@@ -164,33 +156,37 @@ class Template:
         return encode_root(body)
 
 
-# --- the Humans capital pieces ----------------------------------------------
+# --- the Goblins capital pieces ---------------------------------------------
 
-BRICK = "minecraft:stone_bricks"
-COBBLE = "minecraft:cobblestone"
-PLANKS = "minecraft:oak_planks"
-LOG = "minecraft:oak_log"
-GLASS = "minecraft:glass"
+STONE = "minecraft:cobblestone"
+MOSS = "minecraft:mossy_cobblestone"
+TIMBER = "minecraft:spruce_log"
+WOOD = "minecraft:spruce_planks"
+GOLD = "minecraft:gold_block"
+LIGHT = "minecraft:glowstone"
 
 
 def build_start() -> Template:
-    """Gate + plaza: the structure's origin piece. Four road connections."""
-    t = Template(16, 8, 16)
-    t.fill(0, 0, 0, 15, 0, 15, COBBLE)                    # plaza floor
-    # stone-brick border ring
-    for i in range(16):
-        t.set(i, 0, 0, BRICK)
-        t.set(i, 0, 15, BRICK)
-        t.set(0, 0, i, BRICK)
-        t.set(15, 0, i, BRICK)
+    """Gate + plaza: the stronghold's origin piece, with a central keep base."""
+    t = Template(16, 12, 16)
+    t.fill(0, 0, 0, 15, 0, 15, STONE)                      # plaza floor
+    for x, z in ((3, 3), (12, 3), (3, 12), (12, 12)):      # mossy patches
+        t.set(x, 0, z, MOSS)
+        t.set(x + 1, 0, z, MOSS)
+        t.set(x, 0, z + 1, MOSS)
+    for i in range(16):                                    # gold loot ring at the gate
+        t.set(i, 0, 0, GOLD)
+    # central keep base (the stronghold rises from here)
+    t.fill(6, 1, 6, 9, 8, 9, STONE)
+    t.fill(7, 1, 7, 8, 8, 8, WOOD)
+    t.fill(6, 4, 6, 9, 4, 9, MOSS)                         # mossy band
+    t.fill(6, 9, 6, 9, 9, 9, GOLD)
     # gate wall along z=0 with an arch opening (x 6..9, y 1..4)
-    t.fill(0, 1, 0, 15, 5, 0, BRICK)
+    t.fill(0, 1, 0, 15, 4, 0, STONE)
     t.fill(6, 1, 0, 9, 4, 0, "minecraft:air")
-    t.fill(5, 5, 0, 10, 5, 0, BRICK)                      # arch top
-    # corner towers
-    t.fill(0, 1, 0, 1, 7, 1, BRICK)
-    t.fill(14, 1, 0, 15, 7, 1, BRICK)
-    # road exits through the arch and around the other three faces
+    t.fill(5, 5, 0, 10, 5, 0, TIMBER)
+    t.set(5, 1, 0, LIGHT)
+    t.set(10, 1, 0, LIGHT)
     t.jigsaw(7, 1, 0, "south_up", STREETS_POOL)
     t.jigsaw(8, 1, 15, "north_up", STREETS_POOL)
     t.jigsaw(15, 1, 8, "east_up", STREETS_POOL)
@@ -199,9 +195,16 @@ def build_start() -> Template:
 
 
 def build_street() -> Template:
-    """Straight street: continues roads at both ends, pulls buildings at the sides."""
+    """Cobble walkway with mossy inlays and glowstone lamps."""
     t = Template(16, 4, 16)
-    t.fill(6, 0, 0, 9, 0, 15, COBBLE)                     # 4-wide path
+    t.fill(6, 0, 0, 9, 0, 15, STONE)
+    for z in range(0, 16):                                 # mossy inlays
+        if z % 5 == 2:
+            t.set(6, 0, z, MOSS)
+            t.set(9, 0, z, MOSS)
+    for z in range(3, 16, 6):                              # glowstone lamps
+        t.set(5, 1, z, LIGHT)
+        t.set(10, 1, z, LIGHT)
     t.jigsaw(7, 1, 0, "south_up", STREETS_POOL)
     t.jigsaw(7, 1, 15, "north_up", STREETS_POOL)
     t.jigsaw(0, 1, 7, "west_up", BUILDINGS_POOL)
@@ -209,220 +212,57 @@ def build_street() -> Template:
     return t
 
 
-def build_house() -> Template:
-    """Small cottage: floor, log-cornered plank walls, glass, flat roof."""
-    t = Template(9, 7, 9)
-    t.fill(0, 0, 0, 8, 0, 8, PLANKS)
-    t.walls(0, 0, 8, 8, 1, 3, PLANKS)
-    for x, z in ((0, 0), (8, 0), (0, 8), (8, 8)):
-        t.fill(x, 1, z, x, 3, z, LOG)
-    t.set(4, 2, 8, GLASS)                                  # north window
-    t.set(0, 2, 4, GLASS)
-    t.set(8, 2, 4, GLASS)
-    t.fill(4, 1, 0, 4, 2, 0, "minecraft:air")              # door gap (south)
-    t.fill(0, 4, 0, 8, 4, 8, PLANKS)                       # roof
-    t.jigsaw(4, 1, 0, "south_up", BUILDINGS_POOL)          # consumed on attach; sits in the door gap
+def build_spire() -> Template:
+    """Watchtower: cobble mass, timber bands, mossy patches, glowing crown."""
+    t = Template(9, 16, 9)
+    t.fill(0, 0, 0, 8, 0, 8, STONE)
+    t.fill(3, 1, 3, 5, 10, 5, STONE)
+    t.fill(4, 1, 4, 4, 10, 4, WOOD)
+    t.fill(3, 4, 3, 5, 4, 5, TIMBER)                       # timber band
+    t.fill(2, 8, 2, 6, 8, 6, MOSS)                         # mossy band
+    t.set(4, 11, 4, LIGHT)                                 # glowing crown
+    t.set(4, 12, 4, GOLD)
+    t.jigsaw(4, 1, 2, "south_up", BUILDINGS_POOL)
     return t
 
 
-def build_keep() -> Template:
-    """Stone keep: tall walls, glass band, battlements."""
-    t = Template(11, 16, 11)
-    t.fill(0, 0, 0, 10, 0, 10, COBBLE)
-    t.walls(0, 0, 10, 10, 1, 9, BRICK)
+def build_hall() -> Template:
+    """War longhouse: timber corner posts, mossy walls, gold roof trim."""
+    t = Template(11, 8, 11)
+    t.fill(0, 0, 0, 10, 0, 10, WOOD)
+    t.walls(0, 0, 10, 10, 1, 4, STONE)
     for z in range(1, 10):
-        if z % 2 == 0:
-            t.set(0, 4, z, GLASS)
-            t.set(10, 4, z, GLASS)
-    for x in range(1, 10):
-        if x % 2 == 0:
-            t.set(x, 4, 0, GLASS)
-            t.set(x, 4, 10, GLASS)
+        if z % 3 == 1:
+            t.set(0, 2, z, MOSS)
+            t.set(10, 2, z, MOSS)
+    for x, z in ((0, 0), (10, 0), (0, 10), (10, 10)):
+        t.fill(x, 1, z, x, 4, z, TIMBER)
     t.fill(5, 1, 0, 5, 2, 0, "minecraft:air")              # door gap (south)
-    t.fill(0, 10, 0, 10, 10, 10, BRICK)                    # roof
+    t.fill(4, 1, 5, 6, 1, 6, LIGHT)                        # hearth glow
+    t.fill(0, 5, 0, 10, 5, 10, STONE)                      # roof
     for x in range(0, 11):
-        for z in range(0, 11):
-            if (x in (0, 10) or z in (0, 10)) and (x + z) % 2 == 0:
-                t.set(x, 11, z, BRICK)                     # battlements
+        t.set(x, 6, 0, GOLD)
+        t.set(x, 6, 10, GOLD)
+    for z in range(0, 11):
+        t.set(0, 6, z, GOLD)
+        t.set(10, 6, z, GOLD)
     t.jigsaw(5, 1, 0, "south_up", BUILDINGS_POOL)
     return t
 
 
-# --- the Elves capital pieces -----------------------------------------------
-
-MOSS = "minecraft:moss_block"
-LEAVES = "minecraft:oak_leaves"
-
-
-def build_elves_start() -> Template:
-    """Forest clearing with a giant ancient tree: the elves' origin piece."""
-    t = Template(16, 13, 16)
-    t.fill(0, 0, 0, 15, 0, 15, MOSS)                       # clearing floor
-    # giant ancient tree: 3x3 trunk, wide canopy
-    t.fill(7, 1, 7, 9, 9, 9, LOG)
-    for y in range(6, 13):
-        radius = 6 - (y - 6) // 2
-        for x in range(8 - radius, 9 + radius):
-            for z in range(8 - radius, 9 + radius):
-                if t.blocks.get((x, y, z)) is None and not (x == 8 and z == 8 and y <= 9):
-                    t.set(x, y, z, LEAVES, persistent="true")
-    # mossy stone ring
-    for i in range(16):
-        t.set(i, 0, 0, BRICK)
-        t.set(i, 0, 15, BRICK)
-        t.set(0, 0, i, BRICK)
-        t.set(15, 0, i, BRICK)
-    t.jigsaw(7, 1, 0, "south_up", STREETS_POOL_ELVES)
-    t.jigsaw(8, 1, 15, "north_up", STREETS_POOL_ELVES)
-    t.jigsaw(15, 1, 8, "east_up", STREETS_POOL_ELVES)
-    t.jigsaw(0, 1, 8, "west_up", STREETS_POOL_ELVES)
-    return t
-
-
-def build_elves_street() -> Template:
-    """Mossy walkway: continues paths, pulls elven buildings at the sides."""
-    t = Template(16, 4, 16)
-    t.fill(6, 0, 0, 9, 0, 15, MOSS)
-    t.jigsaw(7, 1, 0, "south_up", STREETS_POOL_ELVES)
-    t.jigsaw(7, 1, 15, "north_up", STREETS_POOL_ELVES)
-    t.jigsaw(0, 1, 7, "west_up", BUILDINGS_POOL_ELVES)
-    t.jigsaw(15, 1, 7, "east_up", BUILDINGS_POOL_ELVES)
-    return t
-
-
-def build_elves_treetop() -> Template:
-    """Hut on a trunk: the elves' elevated dwelling."""
-    t = Template(9, 13, 9)
-    t.fill(4, 0, 4, 4, 6, 4, LOG)                          # trunk
-    t.fill(2, 7, 2, 6, 7, 6, PLANKS)                       # platform
-    t.walls(2, 2, 6, 6, 8, 9, PLANKS)
-    t.fill(4, 8, 2, 4, 9, 2, "minecraft:air")              # doorway (south)
-    t.set(2, 9, 4, GLASS)
-    t.set(6, 9, 4, GLASS)
-    t.fill(1, 10, 1, 7, 10, 7, LEAVES, persistent="true")  # leaf roof
-    t.fill(3, 11, 3, 5, 11, 5, LEAVES, persistent="true")
-    t.jigsaw(4, 1, 3, "south_up", BUILDINGS_POOL_ELVES)    # consumed on attach; in front of the trunk
-    return t
-
-
-def build_elves_hut() -> Template:
-    """Ground hut with a leaf roof."""
-    t = Template(7, 6, 7)
-    t.fill(0, 0, 0, 6, 0, 6, MOSS)
-    t.walls(0, 0, 6, 6, 1, 2, PLANKS)
-    for x, z in ((0, 0), (6, 0), (0, 6), (6, 6)):
-        t.fill(x, 1, z, x, 2, z, LOG)
-    t.fill(3, 1, 0, 3, 2, 0, "minecraft:air")              # door gap (south)
-    t.fill(0, 3, 0, 6, 3, 6, LEAVES, persistent="true")    # leaf roof
-    t.fill(1, 4, 1, 5, 4, 5, LEAVES, persistent="true")
-    t.jigsaw(3, 1, 0, "south_up", BUILDINGS_POOL_ELVES)
-    return t
-
-
-# --- the Dwarves capital pieces ---------------------------------------------
-
-def _rock(x: int, z: int) -> str:
-    mix = (x + z) % 3
-    return ANDESITE if mix == 0 else (COBBLE if mix == 1 else BRICK)
-
-
-def build_dwarves_start() -> Template:
-    """Mountain gatehouse: gate and plaza in front, the massif rising behind,
-    with a carved tunnel exit through the rock."""
-    t = Template(20, 16, 16)
-    t.fill(0, 0, 0, 19, 0, 15, COBBLE)                     # plaza floor
-    t.fill(0, 1, 0, 19, 6, 0, BRICK)                       # gate wall
-    t.fill(8, 1, 0, 11, 4, 0, "minecraft:air")             # arch opening
-    t.fill(8, 5, 0, 11, 6, 0, BRICK)                       # arch top
-    for x, z in ((0, 0), (1, 0), (18, 0), (19, 0)):        # gate towers
-        t.fill(x, 1, z, x, 8, z, BRICK)
-    t.walls(0, 0, 19, 8, 1, 5, BRICK)                      # courtyard side walls
-    # the massif rising behind the gate (tallest at the back)
-    for z in range(8, 16):
-        top = 5 + (z - 8)
-        for x in range(0, 20):
-            for y in range(1, top + 1):
-                t.set(x, y, z, _rock(x, z))
-    # carved tunnel exit through the rock
-    t.fill(9, 1, 12, 10, 3, 15, "minecraft:air")
-    t.jigsaw(9, 1, 0, "south_up", STREETS_POOL_DWARVES)
-    t.jigsaw(9, 1, 15, "north_up", STREETS_POOL_DWARVES)
-    t.jigsaw(19, 1, 8, "east_up", STREETS_POOL_DWARVES)
-    t.jigsaw(0, 1, 8, "west_up", STREETS_POOL_DWARVES)
-    return t
-
-
-def build_dwarves_street() -> Template:
-    """Stone-brick road: continues roads, pulls halls and keeps at the sides."""
-    t = Template(16, 4, 16)
-    t.fill(6, 0, 0, 9, 0, 15, BRICK)
-    t.jigsaw(7, 1, 0, "south_up", STREETS_POOL_DWARVES)
-    t.jigsaw(7, 1, 15, "north_up", STREETS_POOL_DWARVES)
-    t.jigsaw(0, 1, 7, "west_up", BUILDINGS_POOL_DWARVES)
-    t.jigsaw(15, 1, 7, "east_up", BUILDINGS_POOL_DWARVES)
-    return t
-
-
-def build_dwarves_hall() -> Template:
-    """Stone hall with a glass slit band."""
-    t = Template(13, 8, 13)
-    t.fill(0, 0, 0, 12, 0, 12, COBBLE)
-    t.walls(0, 0, 12, 12, 1, 5, BRICK)
-    for z in range(1, 12):
-        if z % 2 == 0:
-            t.set(0, 4, z, GLASS)
-            t.set(12, 4, z, GLASS)
-    t.fill(6, 1, 0, 6, 2, 0, "minecraft:air")              # door gap (south)
-    t.fill(0, 6, 0, 12, 6, 12, BRICK)                      # roof
-    t.walls(0, 0, 12, 12, 7, 7, BRICK)                     # roof rim
-    t.jigsaw(6, 1, 0, "south_up", BUILDINGS_POOL_DWARVES)
-    return t
-
-
-def build_dwarves_keep() -> Template:
-    """Tall stone keep with a battlemented roof."""
-    t = Template(13, 18, 13)
-    t.fill(0, 0, 0, 12, 0, 12, COBBLE)
-    t.walls(0, 0, 12, 12, 1, 11, BRICK)
-    for z in range(1, 12):
-        if z % 2 == 0:
-            t.set(0, 5, z, GLASS)
-            t.set(12, 5, z, GLASS)
-    for x in range(1, 12):
-        if x % 2 == 0:
-            t.set(x, 5, 0, GLASS)
-            t.set(x, 5, 12, GLASS)
-    t.fill(6, 1, 0, 6, 2, 0, "minecraft:air")              # door gap (south)
-    t.fill(0, 12, 0, 12, 12, 12, BRICK)                    # roof
-    for x in range(0, 13):
-        for z in range(0, 13):
-            if (x in (0, 12) or z in (0, 12)) and (x + z) % 2 == 0:
-                t.set(x, 13, z, BRICK)                     # battlements
-    t.jigsaw(6, 1, 0, "south_up", BUILDINGS_POOL_DWARVES)
-    return t
-
-
 PIECES = {
-    "humans/start": build_start,
-    "humans/street": build_street,
-    "humans/house": build_house,
-    "humans/keep": build_keep,
-    "elves/start": build_elves_start,
-    "elves/street": build_elves_street,
-    "elves/treetop": build_elves_treetop,
-    "elves/hut": build_elves_hut,
-    "dwarves/start": build_dwarves_start,
-    "dwarves/street": build_dwarves_street,
-    "dwarves/hall": build_dwarves_hall,
-    "dwarves/keep": build_dwarves_keep,
+    "start": build_start,
+    "street": build_street,
+    "spire": build_spire,
+    "hall": build_hall,
 }
 
 
 def main() -> None:
+    OUT.mkdir(parents=True, exist_ok=True)
     for name, builder in PIECES.items():
         template = builder()
         path = OUT / f"{name}.nbt"
-        path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(template.to_nbt())
         print(f"wrote data/{NAMESPACE}/structure/{name}.nbt "
               f"({len(template.blocks)} blocks, {len(template.palette)} palette entries)")

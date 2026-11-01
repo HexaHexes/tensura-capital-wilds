@@ -6,7 +6,7 @@ import net.neoforged.fml.common.Mod;
 import org.slf4j.Logger;
 
 /**
- * Capital cities for the mortal races - Humans, Elves, Dwarves.
+ * The Goblins capital - the Warchief's stronghold in the wild forests.
  *
  * <p>The cities ship as bundled datapack content ({@code data/} in this jar)
  * and register themselves into the central capital tags owned by the
