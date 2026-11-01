@@ -1,7 +1,8 @@
 # Tensura Capital: Wilds
 
 The wilds capitals for the Tensura Faction Spawn ecosystem. This mod carries
-the capitals for the factions of the wild places.
+the capitals for the factions of the wild places - Goblins, Lizardmen, and
+the Aquatic court.
 
 ## What it does
 
@@ -14,8 +15,12 @@ world spawn, and may return to it at will.
   mossy stone, spruce timber framing, glowstone torchlight and gold loot
   trim (generates in the forest family). Tensura's own goblin and orc
   villages remain secondary bootstrap points for arrivals.
-- **Lizardmen** and **Aquatic** - planned; their central tags ship empty
-  until their capitals land.
+- **Lizardmen** (shipped) - the Marsh Court: packed-mud lodges with
+  mangrove timber, mossy stone and sea-lantern glow (generates in the
+  swamps and jungles).
+- **Aquatic** (shipped) - the Coral Throne: a solid prismarine palace with
+  dark-prismarine bands and gold hoard trim (generates on the ocean floor).
+  Arrival places players in the water - the merfolk's home ground.
 
 Install like any mod, alongside Tensura Faction Spawn.
 
