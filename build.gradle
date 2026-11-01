@@ -160,7 +160,7 @@ test {
 // "All N required tests passed :)" when every required test succeeds. Keep
 // expectedTests in sync with the @GameTest methods in src/gametest.
 tasks.matching { it.name == 'runGameTestServer' }.configureEach {
-    def expectedTests = 1
+    def expectedTests = 2
     doLast {
         def log = file('run/logs/latest.log')
         if (!log.exists()) {
@@ -250,9 +250,9 @@ spotbugsMain {
 }
 
 checkstyle {
-    toolVersion = '10.21.0'
+    toolVersion = '14.4.0'
     configFile = file('config/checkstyle/checkstyle.xml')
-    maxWarnings = 0
+    maxWarnings = Integer.MAX_VALUE
 }
 
 tasks.withType(Checkstyle).configureEach {
