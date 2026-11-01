@@ -1,0 +1,7 @@
+{
+  "fallback": "minecraft:empty",
+  "elements": [
+    {"weight": 2, "element": {"element_type": "minecraft:single_pool_element", "location": "tensura_capital_wilds:aquatic/spire", "processors": "minecraft:empty", "projection": "rigid"}},
+    {"weight": 2, "element": {"element_type": "minecraft:single_pool_element", "location": "tensura_capital_wilds:aquatic/hall", "processors": "minecraft:empty", "projection": "rigid"}}
+  ]
+}

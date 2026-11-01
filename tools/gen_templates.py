@@ -17,9 +17,10 @@ a uniform name/target pair ("road"), horizontal `orientation` values, and
 
 The Goblins theme: the Warchief's stronghold - rough cobblestone and mossy
 stone mass, spruce timber framing, glowstone torchlight and gold loot trim.
-The races (goblin through orc disaster, kobold) range across Tensura's
-forest-family villages, so the stronghold generates in the vanilla forest
-family.
+The Lizardman theme: the Marsh Court - packed-mud lodges with mangrove
+timber and sea-lantern glow, raised in the swamps and jungles. The Aquatic
+theme: the Coral Throne - a prismarine palace with dark-prismarine bands
+and gold hoard trim, built solid on the ocean floor.
 """
 
 from __future__ import annotations
@@ -258,14 +259,234 @@ PIECES = {
 }
 
 
-def main() -> None:
-    OUT.mkdir(parents=True, exist_ok=True)
-    for name, builder in PIECES.items():
+# --- the Lizardman capital pieces --------------------------------------------
+# Writes to structure/lizardman/ (subdir pool layout: template_pool/lizardman/*).
+
+LIZARDMAN_STREETS_POOL = f"{NAMESPACE}:lizardman/streets"
+LIZARDMAN_BUILDINGS_POOL = f"{NAMESPACE}:lizardman/buildings"
+
+LEARTH = "minecraft:packed_mud"
+LWALL = "minecraft:mud_bricks"
+LTIMBER = "minecraft:mangrove_log"
+LMOSS = "minecraft:mossy_stone_bricks"
+LCOPPER = "minecraft:copper_block"
+LLIGHT = "minecraft:sea_lantern"
+
+
+def build_lizardman_start() -> Template:
+    """Marsh court + mound: the Lizardman capital's origin, with a court mound."""
+    t = Template(16, 12, 16)
+    t.fill(0, 0, 0, 15, 0, 15, LEARTH)                     # packed-mud court
+    for i in range(16):                                    # mossy stone border
+        t.set(i, 0, 0, LMOSS)
+        t.set(i, 0, 15, LMOSS)
+        t.set(0, 0, i, LMOSS)
+        t.set(15, 0, i, LMOSS)
+    for x, z in ((4, 4), (11, 4), (4, 11), (11, 11)):      # mangrove posts
+        t.fill(x, 1, z, x, 3, z, LTIMBER)
+        t.set(x, 4, z, LLIGHT)
+    # central court mound (the court rises from here)
+    t.fill(6, 1, 6, 9, 8, 9, LWALL)
+    t.fill(7, 1, 7, 8, 8, 8, LEARTH)
+    t.fill(6, 4, 6, 9, 4, 9, LTIMBER)                      # timber band
+    t.fill(6, 9, 6, 9, 9, 9, LCOPPER)
+    # low wall along z=0 with a gate opening (x 6..9, y 1..4)
+    t.fill(0, 1, 0, 15, 4, 0, LWALL)
+    t.fill(6, 1, 0, 9, 4, 0, "minecraft:air")
+    t.fill(5, 5, 0, 10, 5, 0, LTIMBER)
+    t.set(5, 1, 0, LLIGHT)
+    t.set(10, 1, 0, LLIGHT)
+    t.jigsaw(7, 1, 0, "south_up", LIZARDMAN_STREETS_POOL)
+    t.jigsaw(8, 1, 15, "north_up", LIZARDMAN_STREETS_POOL)
+    t.jigsaw(15, 1, 8, "east_up", LIZARDMAN_BUILDINGS_POOL)
+    t.jigsaw(0, 1, 8, "west_up", LIZARDMAN_BUILDINGS_POOL)
+    return t
+
+
+def build_lizardman_street() -> Template:
+    """Packed-mud way with mossy inlays and sea-lantern lamps."""
+    t = Template(16, 4, 16)
+    t.fill(6, 0, 0, 9, 0, 15, LEARTH)
+    for z in range(0, 16):                                 # mossy inlays
+        if z % 5 == 2:
+            t.set(6, 0, z, LMOSS)
+            t.set(9, 0, z, LMOSS)
+    for z in range(3, 16, 6):                              # sea-lantern lamps
+        t.set(5, 1, z, LLIGHT)
+        t.set(10, 1, z, LLIGHT)
+    t.jigsaw(7, 1, 0, "south_up", LIZARDMAN_STREETS_POOL)
+    t.jigsaw(7, 1, 15, "north_up", LIZARDMAN_STREETS_POOL)
+    t.jigsaw(0, 1, 7, "west_up", LIZARDMAN_BUILDINGS_POOL)
+    t.jigsaw(15, 1, 7, "east_up", LIZARDMAN_BUILDINGS_POOL)
+    return t
+
+
+def build_lizardman_spire() -> Template:
+    """Marsh watch: mud-brick tower with timber bands and a copper crown."""
+    t = Template(9, 16, 9)
+    t.fill(0, 0, 0, 8, 0, 8, LEARTH)
+    t.fill(3, 1, 3, 5, 10, 5, LWALL)
+    t.fill(4, 1, 4, 4, 10, 4, LMOSS)
+    t.fill(3, 4, 3, 5, 4, 5, LTIMBER)                      # timber band
+    t.fill(3, 7, 3, 5, 7, 5, LEARTH)                       # mud band
+    t.set(4, 11, 4, LLIGHT)                                # glowing crown
+    t.set(4, 12, 4, LCOPPER)
+    t.jigsaw(4, 1, 2, "south_up", LIZARDMAN_BUILDINGS_POOL)
+    return t
+
+
+def build_lizardman_hall() -> Template:
+    """Court hall: mud-brick walls, mangrove posts, copper roof trim."""
+    t = Template(11, 8, 11)
+    t.fill(0, 0, 0, 10, 0, 10, LEARTH)
+    t.walls(0, 0, 10, 10, 1, 4, LWALL)
+    for z in range(1, 10):
+        if z % 3 == 1:
+            t.set(0, 3, z, LMOSS)
+            t.set(10, 3, z, LMOSS)
+    for x, z in ((0, 0), (10, 0), (0, 10), (10, 10)):
+        t.fill(x, 1, z, x, 4, z, LTIMBER)
+    t.fill(5, 1, 0, 5, 2, 0, "minecraft:air")              # door gap (south)
+    t.fill(4, 1, 5, 6, 1, 6, LLIGHT)                       # hearth glow
+    t.fill(0, 5, 0, 10, 5, 10, LWALL)                      # roof
+    for x in range(0, 11):
+        t.set(x, 6, 0, LCOPPER)
+        t.set(x, 6, 10, LCOPPER)
+    for z in range(0, 11):
+        t.set(0, 6, z, LCOPPER)
+        t.set(10, 6, z, LCOPPER)
+    t.jigsaw(5, 1, 0, "south_up", LIZARDMAN_BUILDINGS_POOL)
+    return t
+
+
+LIZARDMAN_PIECES = {
+    "start": build_lizardman_start,
+    "street": build_lizardman_street,
+    "spire": build_lizardman_spire,
+    "hall": build_lizardman_hall,
+}
+
+
+# --- the Aquatic capital pieces ----------------------------------------------
+# Writes to structure/aquatic/ (subdir pool layout: template_pool/aquatic/*).
+# The palace builds SOLID (no interior voids) so it does not carve air pockets
+# into the ocean floor.
+
+AQUATIC_STREETS_POOL = f"{NAMESPACE}:aquatic/streets"
+AQUATIC_BUILDINGS_POOL = f"{NAMESPACE}:aquatic/buildings"
+
+ASTONE = "minecraft:prismarine"
+ABRICK = "minecraft:prismarine_bricks"
+ADARK = "minecraft:dark_prismarine"
+AGOLD = "minecraft:gold_block"
+ALIGHT = "minecraft:sea_lantern"
+
+
+def build_aquatic_start() -> Template:
+    """Palace terrace: the Coral Throne's origin, solid on the seafloor."""
+    t = Template(16, 12, 16)
+    t.fill(0, 0, 0, 15, 0, 15, ABRICK)                     # terrace floor
+    for i in range(16):                                    # dark prismarine border
+        t.set(i, 0, 0, ADARK)
+        t.set(i, 0, 15, ADARK)
+        t.set(0, 0, i, ADARK)
+        t.set(15, 0, i, ADARK)
+    # central throne mass (solid)
+    t.fill(6, 1, 6, 9, 8, 9, ASTONE)
+    t.fill(7, 1, 7, 8, 8, 8, ABRICK)
+    t.fill(6, 4, 6, 9, 4, 9, ADARK)                        # dark band
+    t.fill(6, 9, 6, 9, 9, 9, AGOLD)
+    for x, z in ((3, 3), (12, 3), (3, 12), (12, 12)):      # sea-lantern pylons
+        t.fill(x, 1, z, x, 2, z, ALIGHT)
+    # gate wall along z=0 with an arch opening (x 6..9, y 1..4)
+    t.fill(0, 1, 0, 15, 4, 0, ASTONE)
+    t.fill(6, 1, 0, 9, 4, 0, "minecraft:air")
+    t.fill(5, 5, 0, 10, 5, 0, ADARK)
+    t.jigsaw(7, 1, 0, "south_up", AQUATIC_STREETS_POOL)
+    t.jigsaw(8, 1, 15, "north_up", AQUATIC_STREETS_POOL)
+    t.jigsaw(15, 1, 8, "east_up", AQUATIC_STREETS_POOL)
+    t.jigsaw(0, 1, 8, "west_up", AQUATIC_STREETS_POOL)
+    return t
+
+
+def build_aquatic_street() -> Template:
+    """Prismarine causeway with dark-prismarine joints and lantern rows."""
+    t = Template(16, 4, 16)
+    t.fill(6, 0, 0, 9, 0, 15, ABRICK)
+    for z in range(0, 16):                                 # dark joints
+        if z % 4 == 2:
+            t.set(7, 0, z, ADARK)
+            t.set(8, 0, z, ADARK)
+    for z in range(3, 16, 6):                              # lantern rows
+        t.set(5, 1, z, ALIGHT)
+        t.set(10, 1, z, ALIGHT)
+    t.jigsaw(7, 1, 0, "south_up", AQUATIC_STREETS_POOL)
+    t.jigsaw(7, 1, 15, "north_up", AQUATIC_STREETS_POOL)
+    t.jigsaw(0, 1, 7, "west_up", AQUATIC_BUILDINGS_POOL)
+    t.jigsaw(15, 1, 7, "east_up", AQUATIC_BUILDINGS_POOL)
+    return t
+
+
+def build_aquatic_spire() -> Template:
+    """Solid coral spire: prismarine shaft, dark bands, lantern crown."""
+    t = Template(9, 16, 9)
+    t.fill(0, 0, 0, 8, 0, 8, ABRICK)
+    t.fill(3, 1, 3, 5, 10, 5, ASTONE)
+    t.fill(4, 1, 4, 4, 10, 4, ABRICK)
+    t.fill(3, 4, 3, 5, 4, 5, ADARK)                        # dark band
+    t.fill(3, 7, 3, 5, 7, 5, ADARK)                        # dark band
+    t.set(4, 11, 4, ALIGHT)                                # glowing crown
+    t.set(4, 12, 4, AGOLD)
+    t.jigsaw(4, 1, 2, "south_up", AQUATIC_BUILDINGS_POOL)
+    return t
+
+
+def build_aquatic_hall() -> Template:
+    """Solid palace hall: prismarine mass, dark bands, gold hoard cap."""
+    t = Template(11, 8, 11)
+    t.fill(0, 0, 0, 10, 0, 10, ABRICK)
+    t.fill(0, 1, 0, 10, 4, 10, ASTONE)                     # solid mass
+    for z in range(0, 11):
+        t.set(0, 3, z, ADARK)
+        t.set(10, 3, z, ADARK)
+    for x in range(0, 11):
+        t.set(x, 3, 0, ADARK)
+        t.set(x, 3, 10, ADARK)
+    t.fill(0, 5, 0, 10, 5, 10, ABRICK)                     # roof
+    for x in range(0, 11):
+        t.set(x, 6, 0, AGOLD)
+        t.set(x, 6, 10, AGOLD)
+    for z in range(0, 11):
+        t.set(0, 6, z, AGOLD)
+        t.set(10, 6, z, AGOLD)
+    t.jigsaw(5, 1, 0, "south_up", AQUATIC_BUILDINGS_POOL)
+    return t
+
+
+AQUATIC_PIECES = {
+    "start": build_aquatic_start,
+    "street": build_aquatic_street,
+    "spire": build_aquatic_spire,
+    "hall": build_aquatic_hall,
+}
+
+
+def write_set(pieces: dict, out_dir: Path) -> None:
+    out_dir.mkdir(parents=True, exist_ok=True)
+    for name, builder in pieces.items():
         template = builder()
-        path = OUT / f"{name}.nbt"
+        path = out_dir / f"{name}.nbt"
         path.write_bytes(template.to_nbt())
-        print(f"wrote data/{NAMESPACE}/structure/{name}.nbt "
-              f"({len(template.blocks)} blocks, {len(template.palette)} palette entries)")
+        rel = path.relative_to(OUT.parent.parent)
+        print(f"wrote {rel} ({len(template.blocks)} blocks, {len(template.palette)} palette entries)")
+
+
+def main() -> None:
+    # Goblins keeps its merged top-level layout (pools reference the bare names);
+    # Lizardman and Aquatic use subdirectories with their own pool namespaces.
+    write_set(PIECES, OUT)
+    write_set(LIZARDMAN_PIECES, OUT / "lizardman")
+    write_set(AQUATIC_PIECES, OUT / "aquatic")
 
 
 if __name__ == "__main__":
