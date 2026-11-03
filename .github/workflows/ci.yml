@@ -252,7 +252,6 @@ jobs:
           PACKAGE_READ_TOKEN: ${{ secrets.PACKAGE_READ_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.PACKAGE_READ_TOKEN || github.token }}
         run: ./gradlew spotlessCheck --no-daemon --stacktrace
-        continue-on-error: true
 
       - name: Upload the SpotBugs report
         if: always()

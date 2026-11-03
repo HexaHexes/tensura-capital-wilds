@@ -1,8 +1,8 @@
 package org.bitwisemadness.tensuracapitalwilds;
 
-import org.junit.jupiter.api.Test;
-
 import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import org.junit.jupiter.api.Test;
 
 /**
  * Placeholder-style identity check so the CI junit check cannot pass vacuously;
