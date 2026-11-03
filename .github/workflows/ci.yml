@@ -227,8 +227,7 @@ jobs:
           java-version: '21'
           cache: gradle
 
-      # ignoreFailures in build.gradle: SpotBugs findings never fail this
-      # step during the grace period - the job exists to surface volume.
+      # Enforced since #10: findings fail this step (ignoreFailures dropped       # from build.gradle). The report still uploads below via if: always().
       - name: SpotBugs
         env:
           PACKAGE_READ_TOKEN: ${{ secrets.PACKAGE_READ_TOKEN }}
@@ -259,6 +258,13 @@ jobs:
         with:
           name: spotbugs-report
           path: build/reports/spotbugs/
+          if-no-files-found: ignore
+      - name: Upload the Checkstyle report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: checkstyle-report
+          path: build/reports/checkstyle/
           if-no-files-found: ignore
 
   version-bump:
@@ -394,3 +400,4 @@ jobs:
           echo "::error::A breaking change cannot ship in a patch release."
           echo "::error::Bump $OLD_BASE to a higher major or minor version, not $NEW_VERSION."
           exit 1
+
