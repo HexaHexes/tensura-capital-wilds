@@ -9,7 +9,7 @@ name: Dependency submission
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ 'neoforge-*' ]   # loader-line branches (org rule); no main/master
   pull_request:
 
 permissions:
@@ -40,8 +40,6 @@ jobs:
       # Dependency Submission API. Needs no write scopes on public repos.
       - name: Generate and submit the dependency graph
         uses: gradle/actions/dependency-submission@v6
-        with:
-          token: ${{ github.token }}
         env:
           # The submission's Gradle resolves the full graph, including cross-repo
           # Packages coordinates on consumer repos - same two-name pattern as
